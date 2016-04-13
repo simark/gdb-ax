@@ -12,7 +12,7 @@ class BaseOp:
     pass
 
 
-class AddOp(BaseOp):
+class BinBaseOp:
 
     def __init__(self, op_a, op_b):
         self._op_a = op_a
@@ -27,27 +27,23 @@ class AddOp(BaseOp):
         return self._op_b
 
     def __repr__(self):
-        return 'AddOp(op_a={}, op_b={})'.format(self.op_a,
-                                                self.op_b)
+        cls_name = type(self).__name__
+
+        return '{}(op_a={}, op_b={})'.format(cls_name,
+                                             self.op_a,
+                                             self.op_b)
 
 
-class EqualOp(BaseOp):
+class AddOp(BinBaseOp):
+    pass
 
-    def __init__(self, op_a, op_b):
-        self._op_a = op_a
-        self._op_b = op_b
 
-    @property
-    def op_a(self):
-        return self._op_a
+class SubOp(BinBaseOp):
+    pass
 
-    @property
-    def op_b(self):
-        return self._op_b
 
-    def __repr__(self):
-        return 'EqualOp(op_a={}, op_b={})'.format(self.op_a,
-                                                  self.op_b)
+class EqualOp(BinBaseOp):
+    pass
 
 
 class SignExtendOp(BaseOp):
@@ -88,6 +84,7 @@ class AxParser:
     def __init__(self):
         self._handlers = {
             0x02: self._parse_add,
+            0x03: self._parse_sub,
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
             0x22: self._parse_const8,
@@ -113,17 +110,20 @@ class AxParser:
         except IndexError as e:
             raise InvalidAxError('Trying to pop an empty stack.') from e
 
-    def _parse_add(self):
+    def _parse_binop(self, obj_cls):
         op_b = self._pop()
         op_a = self._pop()
 
-        self._push(AddOp(op_a, op_b))
+        self._push(obj_cls(op_a, op_b))
+
+    def _parse_add(self):
+        self._parse_binop(AddOp)
+
+    def _parse_sub(self):
+        self._parse_binop(SubOp)
 
     def _parse_equal(self):
-        op_b = self._pop()
-        op_a = self._pop()
-
-        self._push(EqualOp(op_a, op_b))
+        self._parse_binop(EqualOp)
 
     def _parse_sign_extend(self):
         n_bits = self._get()
