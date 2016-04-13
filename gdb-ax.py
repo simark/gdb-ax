@@ -12,6 +12,22 @@ class BaseOp:
     pass
 
 
+class UnaryBaseOp:
+
+    def __init__(self, op):
+        self._op = op
+
+    @property
+    def op(self):
+        return self._op
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+
+        return '{}(op={})'.format(cls_name,
+                                  self.op)
+
+
 class BinBaseOp:
 
     def __init__(self, op_a, op_b):
@@ -58,6 +74,10 @@ class RightUnsignedShiftOp(BinBaseOp):
     pass
 
 
+class LogNotOp(UnaryBaseOp):
+    pass
+
+
 class AndOp(BinBaseOp):
     pass
 
@@ -71,6 +91,14 @@ class XorOp(BinBaseOp):
 
 
 class EqualOp(BinBaseOp):
+    pass
+
+
+class LessSignedOp(BinBaseOp):
+    pass
+
+
+class LessUnsignedOp(BinBaseOp):
     pass
 
 
@@ -146,12 +174,16 @@ class AxParser:
             0x09: self._parse_left_shift,
             0x0a: self._parse_right_signed_shift,
             0x0b: self._parse_right_unsigned_shift,
+            0x0e: self._parse_log_not,
             0x0f: self._parse_and,
             0x10: self._parse_or,
             0x11: self._parse_xor,
             0x13: self._parse_equal,
+            0x14: self._parse_less_signed,
+            0x15: self._parse_less_unsigned,
             0x16: self._parse_sign_extend,
             0x2a: self._parse_zero_extend,
+            0x2b: self._parse_swap,
             0x22: self._parse_const8,
             0x23: self._parse_const16,
             0x24: self._parse_const32,
@@ -202,6 +234,11 @@ class AxParser:
     def _parse_right_unsigned_shift(self):
         self._parse_binop(RightUnsignedShiftOp)
 
+    def _parse_log_not(self):
+        op = self._pop()
+
+        self._push(LogNotOp(op))
+
     def _parse_and(self):
         self._parse_binop(AndOp)
 
@@ -214,6 +251,12 @@ class AxParser:
     def _parse_equal(self):
         self._parse_binop(EqualOp)
 
+    def _parse_less_signed(self):
+        self._parse_binop(LessSignedOp)
+
+    def _parse_less_unsigned(self):
+        self._parse_binop(LessUnsignedOp)
+
     def _parse_extend(self, cls_obj):
         n_bits = self._get()
         val = self._pop()
@@ -225,6 +268,13 @@ class AxParser:
 
     def _parse_zero_extend(self):
         self._parse_extend(ZeroExtendOp)
+
+    def _parse_swap(self):
+        op_b = self._pop()
+        op_a = self._pop()
+
+        self._push(op_b)
+        self._push(op_a)
 
     def _parse_const(self, cls_obj, n):
         val = 0

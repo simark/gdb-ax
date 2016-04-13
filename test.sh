@@ -34,3 +34,15 @@ do_test 2500000000abababab240000ffff2a20102500000000ababffff1327
 
 # (0xaaaaaaaa ^ 0x55555555) == 0xffffffff
 do_test 2500000000aaaaaaaa24555555552a20112500000000ffffffff1327
+
+# 21 < 42
+do_test 2215222a1427
+
+# 42 <= 42
+do_test 222a222a2b140e27
+
+# 42 >= 42
+do_test 222a222a140e27
+
+# 42 > 21
+do_test 222a22152b1427
