@@ -58,6 +58,18 @@ class RightUnsignedShiftOp(BinBaseOp):
     pass
 
 
+class AndOp(BinBaseOp):
+    pass
+
+
+class OrOp(BinBaseOp):
+    pass
+
+
+class XorOp(BinBaseOp):
+    pass
+
+
 class EqualOp(BinBaseOp):
     pass
 
@@ -134,6 +146,9 @@ class AxParser:
             0x09: self._parse_left_shift,
             0x0a: self._parse_right_signed_shift,
             0x0b: self._parse_right_unsigned_shift,
+            0x0f: self._parse_and,
+            0x10: self._parse_or,
+            0x11: self._parse_xor,
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
             0x2a: self._parse_zero_extend,
@@ -186,6 +201,15 @@ class AxParser:
 
     def _parse_right_unsigned_shift(self):
         self._parse_binop(RightUnsignedShiftOp)
+
+    def _parse_and(self):
+        self._parse_binop(AndOp)
+
+    def _parse_or(self):
+        self._parse_binop(OrOp)
+
+    def _parse_xor(self):
+        self._parse_binop(XorOp)
 
     def _parse_equal(self):
         self._parse_binop(EqualOp)
