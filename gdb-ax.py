@@ -131,6 +131,19 @@ class ZeroExtendOp(ExtendBaseOp):
     pass
 
 
+class RefOp(BaseOp):
+
+    def __init__(self, addr):
+        self._addr = addr
+
+    @property
+    def addr(self):
+        return self._addr
+
+    def __repr__(self):
+        return 'RefOp(addr={})'.format(hex(self.addr))
+
+
 class ConstBaseOp(BaseOp):
 
     def __init__(self, operand):
@@ -177,6 +190,7 @@ class RegOp(BaseOp):
         return 'RegOp(reg={} {})'.format(self.reg,
                                          hex(self._reg))
 
+
 class AxParser:
 
     def __init__(self):
@@ -195,6 +209,10 @@ class AxParser:
             0x14: self._parse_less_signed,
             0x15: self._parse_less_unsigned,
             0x16: self._parse_sign_extend,
+            0x17: self._parse_ref8,
+            0x18: self._parse_ref16,
+            0x19: self._parse_ref32,
+            0x1a: self._parse_ref64,
             0x2a: self._parse_zero_extend,
             0x2b: self._parse_swap,
             0x22: self._parse_const8,
@@ -282,6 +300,26 @@ class AxParser:
 
     def _parse_zero_extend(self):
         self._parse_extend(ZeroExtendOp)
+
+    def _parse_ref(self, n):
+        addr = 0
+
+        for i in range(n):
+            addr = addr << 8 | self._get()
+
+        self._push(RefOp(addr))
+
+    def _parse_ref8(self):
+        self._parse_ref(1)
+
+    def _parse_ref16(self):
+        self._parse_ref(2)
+
+    def _parse_ref32(self):
+        self._parse_ref(4)
+
+    def _parse_ref64(self):
+        self._parse_ref(8)
 
     def _parse_swap(self):
         op_b = self._pop()
