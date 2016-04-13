@@ -62,7 +62,7 @@ class EqualOp(BinBaseOp):
     pass
 
 
-class SignExtendOp(BaseOp):
+class ExtendBaseOp(BaseOp):
 
     def __init__(self, value, n_bits):
         self._value = value
@@ -77,8 +77,18 @@ class SignExtendOp(BaseOp):
         return self._n_bits
 
     def __repr__(self):
-        return 'SignExtendOp(value={}, n_bits={})'.format(self.value,
-                                                          self.n_bits)
+        cls_name = type(self).__name__
+        return '{}(value={}, n_bits={})'.format(cls_name,
+                                                self.value,
+                                                self.n_bits)
+
+
+class SignExtendOp(ExtendBaseOp):
+    pass
+
+
+class ZeroExtendOp(ExtendBaseOp):
+    pass
 
 
 class ConstBaseOp(BaseOp):
@@ -126,6 +136,7 @@ class AxParser:
             0x0b: self._parse_right_unsigned_shift,
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
+            0x2a: self._parse_zero_extend,
             0x22: self._parse_const8,
             0x23: self._parse_const16,
             0x24: self._parse_const32,
@@ -179,11 +190,17 @@ class AxParser:
     def _parse_equal(self):
         self._parse_binop(EqualOp)
 
-    def _parse_sign_extend(self):
+    def _parse_extend(self, cls_obj):
         n_bits = self._get()
         val = self._pop()
 
-        self._push(SignExtendOp(val, n_bits))
+        self._push(cls_obj(val, n_bits))
+
+    def _parse_sign_extend(self):
+        self._parse_extend(SignExtendOp)
+
+    def _parse_zero_extend(self):
+        self._parse_extend(ZeroExtendOp)
 
     def _parse_const(self, cls_obj, n):
         val = 0
@@ -207,7 +224,6 @@ class AxParser:
 
     def _parse_end(self):
         self._end_seen = 1
-        pass
 
     def parse(self, ax_str, lvalue=False):
         self._stack = []
