@@ -46,3 +46,6 @@ do_test 222a222a140e27
 
 # 42 > 21
 do_test 222a22152b1427
+
+# $rip == *set_point
+do_test 2600102a40240040067b1327

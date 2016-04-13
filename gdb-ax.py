@@ -164,6 +164,19 @@ class Const64Op(ConstBaseOp):
     pass
 
 
+class RegOp(BaseOp):
+
+    def __init__(self, reg):
+        self._reg = reg
+
+    @property
+    def reg(self):
+        return self._reg
+
+    def __repr__(self):
+        return 'RegOp(reg={} {})'.format(self.reg,
+                                         hex(self._reg))
+
 class AxParser:
 
     def __init__(self):
@@ -188,6 +201,7 @@ class AxParser:
             0x23: self._parse_const16,
             0x24: self._parse_const32,
             0x25: self._parse_const64,
+            0x26: self._parse_reg,
             0x27: self._parse_end,
         }
 
@@ -295,6 +309,14 @@ class AxParser:
 
     def _parse_const64(self):
         self._parse_const(Const64Op, 8)
+
+    def _parse_reg(self):
+        regh = self._get()
+        regl = self._get()
+
+        reg = regh << 8 | regl
+
+        self._push(RegOp(reg))
 
     def _parse_end(self):
         self._end_seen = 1
