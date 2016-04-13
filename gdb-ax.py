@@ -42,6 +42,10 @@ class SubOp(BinBaseOp):
     pass
 
 
+class MulOp(BinBaseOp):
+    pass
+
+
 class EqualOp(BinBaseOp):
     pass
 
@@ -85,6 +89,7 @@ class AxParser:
         self._handlers = {
             0x02: self._parse_add,
             0x03: self._parse_sub,
+            0x04: self._parse_mul,
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
             0x22: self._parse_const8,
@@ -121,6 +126,9 @@ class AxParser:
 
     def _parse_sub(self):
         self._parse_binop(SubOp)
+
+    def _parse_mul(self):
+        self._parse_binop(MulOp)
 
     def _parse_equal(self):
         self._parse_binop(EqualOp)
