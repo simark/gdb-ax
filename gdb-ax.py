@@ -46,6 +46,18 @@ class MulOp(BinBaseOp):
     pass
 
 
+class LeftShiftOp(BinBaseOp):
+    pass
+
+
+class RightSignedShiftOp(BinBaseOp):
+    pass
+
+
+class RightUnsignedShiftOp(BinBaseOp):
+    pass
+
+
 class EqualOp(BinBaseOp):
     pass
 
@@ -90,6 +102,9 @@ class AxParser:
             0x02: self._parse_add,
             0x03: self._parse_sub,
             0x04: self._parse_mul,
+            0x09: self._parse_left_shift,
+            0x0a: self._parse_right_signed_shift,
+            0x0b: self._parse_right_unsigned_shift,
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
             0x22: self._parse_const8,
@@ -129,6 +144,15 @@ class AxParser:
 
     def _parse_mul(self):
         self._parse_binop(MulOp)
+
+    def _parse_left_shift(self):
+        self._parse_binop(LeftShiftOp)
+
+    def _parse_right_signed_shift(self):
+        self._parse_binop(RightSignedShiftOp)
+
+    def _parse_right_unsigned_shift(self):
+        self._parse_binop(RightUnsignedShiftOp)
 
     def _parse_equal(self):
         self._parse_binop(EqualOp)
