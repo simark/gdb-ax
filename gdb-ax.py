@@ -168,10 +168,9 @@ class AxParser:
 
 
 def main(ax_str):
-    # 22152215021620222a1327
     ax_parser = AxParser()
-    stmts = ax_parser.parse(ax_str)
-    print(stmts)
+    result = ax_parser.parse(ax_str)
+    print(result)
 
 if __name__ == '__main__':
     main(sys.argv[1])
