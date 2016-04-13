@@ -81,7 +81,7 @@ class SignExtendOp(BaseOp):
                                                           self.n_bits)
 
 
-class Const8Op(BaseOp):
+class ConstBaseOp(BaseOp):
 
     def __init__(self, operand):
         self._operand = operand
@@ -91,8 +91,27 @@ class Const8Op(BaseOp):
         return self._operand
 
     def __repr__(self):
-        return 'Const8Op(operand={} {})'.format(self.operand,
-                                                hex(self.operand))
+        cls_name = type(self).__name__
+
+        return '{}(operand={} {})'.format(cls_name,
+                                          self.operand,
+                                          hex(self.operand))
+
+
+class Const8Op(ConstBaseOp):
+    pass
+
+
+class Const16Op(ConstBaseOp):
+    pass
+
+
+class Const32Op(ConstBaseOp):
+    pass
+
+
+class Const64Op(ConstBaseOp):
+    pass
 
 
 class AxParser:
@@ -108,6 +127,9 @@ class AxParser:
             0x13: self._parse_equal,
             0x16: self._parse_sign_extend,
             0x22: self._parse_const8,
+            0x23: self._parse_const16,
+            0x24: self._parse_const32,
+            0x25: self._parse_const64,
             0x27: self._parse_end,
         }
 
@@ -163,8 +185,25 @@ class AxParser:
 
         self._push(SignExtendOp(val, n_bits))
 
+    def _parse_const(self, cls_obj, n):
+        val = 0
+        for i in range(n):
+            val <<= 8
+            val |= self._get()
+
+        self._push(cls_obj(val))
+
     def _parse_const8(self):
-        self._push(Const8Op(self._get()))
+        self._parse_const(Const8Op, 1)
+
+    def _parse_const16(self):
+        self._parse_const(Const16Op, 2)
+
+    def _parse_const32(self):
+        self._parse_const(Const32Op, 4)
+
+    def _parse_const64(self):
+        self._parse_const(Const64Op, 8)
 
     def _parse_end(self):
         self._end_seen = 1
