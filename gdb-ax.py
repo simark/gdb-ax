@@ -17,12 +17,12 @@ class InvalidAxError(Exception):
 
 class BaseOp:
 
-    def __init__(self, ax_ptr):
-        self._ax_ptr = ax_ptr
+    def __init__(self, offset):
+        self._offset = offset
 
     @property
-    def ax_ptr(self):
-        return self._ax_ptr
+    def offset(self):
+        return self._offset
 
     def __repr__(self):
         cls_name = type(self).__name__
@@ -373,7 +373,6 @@ class AxDisas:
                 raise InvalidAxError(fmt.format(hex(op)), self._ax_ptr - 1)
 
             p = self._handlers[op](this_ax_ptr)
-            print(p)
             ops.append(p)
 
         return ops
@@ -383,12 +382,15 @@ def print_error(ax_str, exc):
     print(ax_str)
     print('{}^'.format('  ' * exc.offset))
 
+def print_nicely(ops):
+    for op in ops:
+        print(' {:4}: {}'.format(op.offset, op))
 
 def main(ax_str):
     ax_parser = AxDisas()
     try:
         result = ax_parser.parse(ax_str)
-        print(result)
+        print_nicely(result)
     except InvalidAxError as e:
         print(e)
         print_error(ax_str, e)
