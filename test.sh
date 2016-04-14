@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function do_test {
-	python3 gdb-ax.py $1
+	python3 ax_disas.py $1
 	echo
 }
 
