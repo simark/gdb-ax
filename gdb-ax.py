@@ -5,7 +5,14 @@ import sys
 
 
 class InvalidAxError(Exception):
-    pass
+
+    def __init__(self, msg, offset):
+        super().__init__(msg)
+        self._offset = offset
+
+    @property
+    def offset(self):
+        return self._offset
 
 
 class BaseOp:
@@ -17,109 +24,68 @@ class BaseOp:
     def ax_ptr(self):
         return self._ax_ptr
 
-
-class UnaryBaseOp(BaseOp):
-
-    def __init__(self, ax_ptr, op):
-        super().__init__(ax_ptr)
-        self._op = op
-
-    @property
-    def op(self):
-        return self._op
-
     def __repr__(self):
         cls_name = type(self).__name__
-
-        return '{}(op={})'.format(cls_name,
-                                  self.op)
+        return '{}()'.format(cls_name)
 
 
-class BinBaseOp(BaseOp):
-
-    def __init__(self, ax_ptr, op_a, op_b):
-        super().__init__(ax_ptr)
-        self._op_a = op_a
-        self._op_b = op_b
-
-    @property
-    def op_a(self):
-        return self._op_a
-
-    @property
-    def op_b(self):
-        return self._op_b
-
-    def __repr__(self):
-        cls_name = type(self).__name__
-
-        return '{}(op_a={}, op_b={})'.format(cls_name,
-                                             self.op_a,
-                                             self.op_b)
-
-
-class AddOp(BinBaseOp):
+class AddOp(BaseOp):
     pass
 
 
-class SubOp(BinBaseOp):
+class SubOp(BaseOp):
     pass
 
 
-class MulOp(BinBaseOp):
+class MulOp(BaseOp):
     pass
 
 
-class LeftShiftOp(BinBaseOp):
+class LeftShiftOp(BaseOp):
     pass
 
 
-class RightSignedShiftOp(BinBaseOp):
+class RightSignedShiftOp(BaseOp):
     pass
 
 
-class RightUnsignedShiftOp(BinBaseOp):
+class RightUnsignedShiftOp(BaseOp):
     pass
 
 
-class LogNotOp(UnaryBaseOp):
+class LogNotOp(BaseOp):
     pass
 
 
-class AndOp(BinBaseOp):
+class AndOp(BaseOp):
     pass
 
 
-class OrOp(BinBaseOp):
+class OrOp(BaseOp):
     pass
 
 
-class XorOp(BinBaseOp):
+class XorOp(BaseOp):
     pass
 
 
-class EqualOp(BinBaseOp):
+class EqualOp(BaseOp):
     pass
 
 
-class LessSignedOp(BinBaseOp):
+class LessSignedOp(BaseOp):
     pass
 
 
-class LessUnsignedOp(BinBaseOp):
+class LessUnsignedOp(BaseOp):
     pass
 
 
 class ExtendBaseOp(BaseOp):
 
-    def __init__(self, ax_ptr, value, n_bits):
+    def __init__(self, ax_ptr, n_bits):
         super().__init__(ax_ptr)
-        self._value = value
         self._n_bits = n_bits
-
-    @property
-    def value(self):
-        return self._value
 
     @property
     def n_bits(self):
@@ -127,9 +93,8 @@ class ExtendBaseOp(BaseOp):
 
     def __repr__(self):
         cls_name = type(self).__name__
-        return '{}(value={}, n_bits={})'.format(cls_name,
-                                                self.value,
-                                                self.n_bits)
+        return '{}(n_bits={})'.format(cls_name,
+                                      self.n_bits)
 
 
 class SignExtendOp(ExtendBaseOp):
@@ -140,18 +105,47 @@ class ZeroExtendOp(ExtendBaseOp):
     pass
 
 
-class RefOp(BaseOp):
+class Ref8Op(BaseOp):
+    pass
 
-    def __init__(self, ax_ptr, addr):
+
+class Ref16Op(BaseOp):
+    pass
+
+
+class Ref32Op(BaseOp):
+    pass
+
+
+class Ref64Op(BaseOp):
+    pass
+
+
+class GotoBaseOp(BaseOp):
+
+    def __init__(self, ax_ptr, dest):
         super().__init__(ax_ptr)
-        self._addr = addr
+        self._dest = dest
 
     @property
-    def addr(self):
-        return self._addr
+    def dest(self):
+        return self._dest
 
     def __repr__(self):
-        return 'RefOp(addr={})'.format(hex(self.addr))
+        cls_name = type(self).__name__
+        return '{}(dest={})'.format(cls_name, self.dest)
+
+
+class GotoOp(GotoBaseOp):
+    pass
+
+
+class IfGotoOp(GotoBaseOp):
+    pass
+
+
+class SwapOp(BaseOp):
+    pass
 
 
 class ConstBaseOp(BaseOp):
@@ -166,7 +160,6 @@ class ConstBaseOp(BaseOp):
 
     def __repr__(self):
         cls_name = type(self).__name__
-
         return '{}(operand={} {})'.format(cls_name,
                                           self.operand,
                                           hex(self.operand))
@@ -188,6 +181,10 @@ class Const64Op(ConstBaseOp):
     pass
 
 
+class EndOp(BaseOp):
+    pass
+
+
 class RegOp(BaseOp):
 
     def __init__(self, ax_ptr, reg):
@@ -203,7 +200,7 @@ class RegOp(BaseOp):
                                          hex(self._reg))
 
 
-class AxParser:
+class AxDisas:
 
     def __init__(self):
         self._handlers = {
@@ -225,6 +222,8 @@ class AxParser:
             0x18: self._parse_ref16,
             0x19: self._parse_ref32,
             0x1a: self._parse_ref64,
+            0x20: self._parse_if_goto,
+            0x21: self._parse_goto,
             0x2a: self._parse_zero_extend,
             0x2b: self._parse_swap,
             0x22: self._parse_const8,
@@ -244,101 +243,90 @@ class AxParser:
 
         return value
 
-    def _push(self, op_obj):
-        print('Pushing {}'.format(op_obj))
-        self._stack.append(op_obj)
-
-    def _pop(self):
-        try:
-            return self._stack.pop()
-        except IndexError as e:
-            raise InvalidAxError('Trying to pop an empty stack.') from e
-
-    def _parse_binop(self, obj_cls, ax_ptr):
-        op_b = self._pop()
-        op_a = self._pop()
-
-        self._push(obj_cls(ax_ptr, op_a, op_b))
-
     def _parse_add(self, ax_ptr):
-        self._parse_binop(AddOp, ax_ptr)
+        return AddOp(ax_ptr)
 
     def _parse_sub(self, ax_ptr):
-        self._parse_binop(SubOp, ax_ptr)
+        return SubOp(ax_ptr)
 
     def _parse_mul(self, ax_ptr):
-        self._parse_binop(MulOp, ax_ptr)
+        return MulOp(ax_ptr)
 
     def _parse_left_shift(self, ax_ptr):
-        self._parse_binop(LeftShiftOp, ax_ptr)
+        return LeftShiftOp(ax_ptr)
 
     def _parse_right_signed_shift(self, ax_ptr):
-        self._parse_binop(RightSignedShiftOp, ax_ptr)
+        return RightSignedShiftOp(ax_ptr)
 
     def _parse_right_unsigned_shift(self, ax_ptr):
-        self._parse_binop(RightUnsignedShiftOp, ax_ptr)
+        return RightUnsignedShiftOp(ax_ptr)
 
     def _parse_log_not(self, ax_ptr):
-        op = self._pop()
-
-        self._push(LogNotOp(ax_ptr, op))
+        return LogNotOp(ax_ptr)
 
     def _parse_and(self, ax_ptr):
-        self._parse_binop(AndOp, ax_ptr)
+        return AndOp(ax_ptr)
 
     def _parse_or(self, ax_ptr):
-        self._parse_binop(OrOp, ax_ptr)
+        return OrOp(ax_ptr)
 
     def _parse_xor(self, ax_ptr):
-        self._parse_binop(XorOp, ax_ptr)
+        return XorOp(ax_ptr)
 
     def _parse_equal(self, ax_ptr):
-        self._parse_binop(EqualOp, ax_ptr)
+        return EqualOp(ax_ptr)
 
     def _parse_less_signed(self, ax_ptr):
-        self._parse_binop(LessSignedOp, ax_ptr)
+        return LessSignedOp(ax_ptr)
 
     def _parse_less_unsigned(self, ax_ptr):
-        self._parse_binop(LessUnsignedOp, ax_ptr)
+        return LessUnsignedOp(ax_ptr)
 
     def _parse_extend(self, cls_obj, ax_ptr):
         n_bits = self._get()
-        val = self._pop()
 
-        self._push(cls_obj(ax_ptr, val, n_bits))
+        return cls_obj(ax_ptr, n_bits)
 
     def _parse_sign_extend(self, ax_ptr):
-        self._parse_extend(SignExtendOp, ax_ptr)
+        return self._parse_extend(SignExtendOp, ax_ptr)
 
     def _parse_zero_extend(self, ax_ptr):
-        self._parse_extend(ZeroExtendOp, ax_ptr)
+        return self._parse_extend(ZeroExtendOp, ax_ptr)
 
-    def _parse_ref(self, ax_ptr, n):
+    def _parse_ref(self, obj_cls, ax_ptr, n):
         addr = 0
 
         for i in range(n):
             addr = addr << 8 | self._get()
 
-        self._push(RefOp(ax_ptr, addr))
+        return obj_cls(ax_ptr, addr)
+
+    def _parse_goto_base(self, obj_cls, ax_ptr):
+        dest = self._get()
+        dest = (dest << 8) | self._get()
+
+        return obj_cls(ax_ptr, dest)
+
+    def _parse_if_goto(self, ax_ptr):
+        return self._parse_goto_base(IfGotoOp, ax_ptr)
+
+    def _parse_goto(self, ax_ptr):
+        return self._parse_goto_base(GotoOp, ax_ptr)
 
     def _parse_ref8(self, ax_ptr):
-        self._parse_ref(ax_ptr, 1)
+        return Ref8Op(ax_ptr)
 
     def _parse_ref16(self, ax_ptr):
-        self._parse_ref(ax_ptr, 2)
+        return Ref16Op(ax_ptr)
 
     def _parse_ref32(self, ax_ptr):
-        self._parse_ref(ax_ptr, 4)
+        return Ref32Op(ax_ptr)
 
     def _parse_ref64(self, ax_ptr):
-        self._parse_ref(ax_ptr, 8)
+        return Ref64Op(ax_ptr)
 
     def _parse_swap(self, ax_ptr):
-        op_b = self._pop()
-        op_a = self._pop()
-
-        self._push(op_b)
-        self._push(op_a)
+        return SwapOp(ax_ptr)
 
     def _parse_const(self, cls_obj, ax_ptr, n):
         val = 0
@@ -346,19 +334,19 @@ class AxParser:
             val <<= 8
             val |= self._get()
 
-        self._push(cls_obj(ax_ptr, val))
+        return cls_obj(ax_ptr, val)
 
     def _parse_const8(self, ax_ptr):
-        self._parse_const(Const8Op, ax_ptr, 1)
+        return self._parse_const(Const8Op, ax_ptr, 1)
 
     def _parse_const16(self, ax_ptr):
-        self._parse_const(Const16Op, ax_ptr, 2)
+        return self._parse_const(Const16Op, ax_ptr, 2)
 
     def _parse_const32(self, ax_ptr):
-        self._parse_const(Const32Op, ax_ptr, 4)
+        return self._parse_const(Const32Op, ax_ptr, 4)
 
     def _parse_const64(self, ax_ptr):
-        self._parse_const(Const64Op, ax_ptr,  8)
+        return self._parse_const(Const64Op, ax_ptr,  8)
 
     def _parse_reg(self, ax_ptr):
         regh = self._get()
@@ -366,45 +354,45 @@ class AxParser:
 
         reg = regh << 8 | regl
 
-        self._push(RegOp(ax_ptr, reg))
+        return RegOp(ax_ptr, reg)
 
     def _parse_end(self, ax_ptr):
-        self._end_seen = 1
+        return EndOp(ax_ptr)
 
     def parse(self, ax_str, lvalue=False):
-        self._stack = []
+        ops = []
         self._ax = binascii.unhexlify(ax_str)
         self._ax_ptr = 0
-        self._end_seen = 0
 
-        while not self._end_seen:
+        while self._ax_ptr < len(self._ax):
             this_ax_ptr = self._ax_ptr
             op = self._get()
 
             if op not in self._handlers:
-                raise NotImplementedError(
-                    'Operator {} not implemented or invalid'.format(hex(op)))
+                fmt = 'Operator {} invalid (or not implemented).'
+                raise InvalidAxError(fmt.format(hex(op)), self._ax_ptr - 1)
 
-            self._handlers[op](this_ax_ptr)
+            p = self._handlers[op](this_ax_ptr)
+            print(p)
+            ops.append(p)
 
-        if lvalue:
-            if len(self._stack) != 2:
-                raise InvalidAxError(
-                    'End reached, lvalue expected, stack size != 2')
+        return ops
 
-            return tuple(self._stack)
-        else:
-            if len(self._stack) != 1:
-                raise InvalidAxError(
-                    'End reached, rvalue expected, stack size != 1')
 
-            return self._stack[0]
+def print_error(ax_str, exc):
+    print(ax_str)
+    print('{}^'.format('  ' * exc.offset))
 
 
 def main(ax_str):
-    ax_parser = AxParser()
-    result = ax_parser.parse(ax_str)
-    print(result)
+    ax_parser = AxDisas()
+    try:
+        result = ax_parser.parse(ax_str)
+        print(result)
+    except InvalidAxError as e:
+        print(e)
+        print_error(ax_str, e)
+
 
 if __name__ == '__main__':
     main(sys.argv[1])
