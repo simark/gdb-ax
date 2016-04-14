@@ -301,16 +301,11 @@ class AxDisas:
     def _parse_less_unsigned(self, ax_ptr):
         return LessUnsignedOp(ax_ptr)
 
-    def _parse_extend(self, cls_obj, ax_ptr):
-        n_bits = self._get()
-
-        return cls_obj(ax_ptr, n_bits)
-
     def _parse_sign_extend(self, ax_ptr):
-        return self._parse_extend(SignExtendOp, ax_ptr)
+        return SignExtendOp(ax_ptr, self._get())
 
     def _parse_zero_extend(self, ax_ptr):
-        return self._parse_extend(ZeroExtendOp, ax_ptr)
+        return ZeroExtendOp(ax_ptr, self._get())
 
     def _parse_if_goto(self, ax_ptr):
         return IfGotoOp(ax_ptr, self._get(2))
