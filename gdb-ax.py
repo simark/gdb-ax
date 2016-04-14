@@ -148,6 +148,20 @@ class SwapOp(BaseOp):
     pass
 
 
+class GetVOp(BaseOp):
+
+    def __init__(self, ax_ptr, tsv):
+        super().__init__(ax_ptr)
+        self._tsv = tsv
+
+    @property
+    def tsv(self):
+        return self._tsv
+
+    def __repr__(self):
+        return 'GetV(tsv={})'.format(self.tsv)
+
+
 class ConstBaseOp(BaseOp):
 
     def __init__(self, ax_ptr, operand):
@@ -226,6 +240,7 @@ class AxDisas:
             0x21: self._parse_goto,
             0x2a: self._parse_zero_extend,
             0x2b: self._parse_swap,
+            0x2c: self._parse_getv,
             0x22: self._parse_const8,
             0x23: self._parse_const16,
             0x24: self._parse_const32,
@@ -234,12 +249,16 @@ class AxDisas:
             0x27: self._parse_end,
         }
 
-    def _get(self):
-        if self._ax_ptr >= len(self._ax):
-            raise InvalidAxError('Unexpected end of AX')
+    def _get(self, n=1):
+        value = 0
 
-        value = self._ax[self._ax_ptr]
-        self._ax_ptr += 1
+        for i in range(n):
+            if self._ax_ptr >= len(self._ax):
+                raise InvalidAxError('Unexpected end of AX')
+
+            value <<= 8
+            value |= self._ax[self._ax_ptr]
+            self._ax_ptr += 1
 
         return value
 
@@ -293,25 +312,11 @@ class AxDisas:
     def _parse_zero_extend(self, ax_ptr):
         return self._parse_extend(ZeroExtendOp, ax_ptr)
 
-    def _parse_ref(self, obj_cls, ax_ptr, n):
-        addr = 0
-
-        for i in range(n):
-            addr = addr << 8 | self._get()
-
-        return obj_cls(ax_ptr, addr)
-
-    def _parse_goto_base(self, obj_cls, ax_ptr):
-        dest = self._get()
-        dest = (dest << 8) | self._get()
-
-        return obj_cls(ax_ptr, dest)
-
     def _parse_if_goto(self, ax_ptr):
-        return self._parse_goto_base(IfGotoOp, ax_ptr)
+        return IfGotoOp(ax_ptr, self._get(2))
 
     def _parse_goto(self, ax_ptr):
-        return self._parse_goto_base(GotoOp, ax_ptr)
+        return GotoOp(ax_ptr, self._get(2))
 
     def _parse_ref8(self, ax_ptr):
         return Ref8Op(ax_ptr)
@@ -328,33 +333,24 @@ class AxDisas:
     def _parse_swap(self, ax_ptr):
         return SwapOp(ax_ptr)
 
-    def _parse_const(self, cls_obj, ax_ptr, n):
-        val = 0
-        for i in range(n):
-            val <<= 8
-            val |= self._get()
-
-        return cls_obj(ax_ptr, val)
+    def _parse_getv(self, ax_ptr):
+        tsv = self._get(2)
+        return GetVOp(ax_ptr, tsv)
 
     def _parse_const8(self, ax_ptr):
-        return self._parse_const(Const8Op, ax_ptr, 1)
+        return Const8Op(ax_ptr, self._get())
 
     def _parse_const16(self, ax_ptr):
-        return self._parse_const(Const16Op, ax_ptr, 2)
+        return Const16Op(ax_ptr, self._get(2))
 
     def _parse_const32(self, ax_ptr):
-        return self._parse_const(Const32Op, ax_ptr, 4)
+        return Const32Op(ax_ptr, self._get(4))
 
     def _parse_const64(self, ax_ptr):
-        return self._parse_const(Const64Op, ax_ptr,  8)
+        return Const64Op(ax_ptr, self._get(8))
 
     def _parse_reg(self, ax_ptr):
-        regh = self._get()
-        regl = self._get()
-
-        reg = regh << 8 | regl
-
-        return RegOp(ax_ptr, reg)
+        return RegOp(ax_ptr, self._get(2))
 
     def _parse_end(self, ax_ptr):
         return EndOp(ax_ptr)
@@ -379,12 +375,14 @@ class AxDisas:
 
 
 def print_error(ax_str, exc):
-    print(ax_str)
-    print('{}^'.format('  ' * exc.offset))
+    print('  {}'.format(ax_str))
+    print('  {}^'.format('  ' * exc.offset))
+
 
 def print_nicely(ops):
     for op in ops:
         print(' {:4}: {}'.format(op.offset, op))
+
 
 def main(ax_str):
     ax_parser = AxDisas()
@@ -392,8 +390,11 @@ def main(ax_str):
         result = ax_parser.parse(ax_str)
         print_nicely(result)
     except InvalidAxError as e:
-        print(e)
+        print('Error: {}', e)
+        print()
         print_error(ax_str, e)
+        print()
+        raise
 
 
 if __name__ == '__main__':
