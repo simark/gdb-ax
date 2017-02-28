@@ -385,7 +385,7 @@ def main(ax_str):
         result = ax_parser.parse(ax_str)
         print_nicely(result)
     except InvalidAxError as e:
-        print('Error: {}', e)
+        print('Error:', e)
         print()
         print_error(ax_str, e)
         print()
