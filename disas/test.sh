@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
 function do_test {
-	python3 ax_disas.py $1
+	python3 disas.py $1
+	if [ "$?" -ne 0 ]; then
+		echo "oops"
+		exit 1
+	fi
 	echo
 }
 
