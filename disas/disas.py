@@ -391,12 +391,14 @@ def main(ax_str):
         print()
         raise
 
+
 def cli_main():
     if len(sys.argv) != 2:
         print("Exactly one argument expected.")
         sys.exit(1)
 
     main(sys.argv[1])
+
 
 if __name__ == '__main__':
     cli_main()
