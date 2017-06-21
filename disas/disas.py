@@ -207,6 +207,40 @@ class EndOp(BaseOp):
     pass
 
 
+class XrefBaseOp(BaseOp):
+    def __init__(self, ax_ptr, addr_space):
+        super().__init__(ax_ptr)
+        self._addr_space = addr_space
+
+    @property
+    def addr_space(self):
+        return self._addr_space
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+        return '{}(addr_space={})'.format(cls_name, self.addr_space)
+
+
+class Xref8Op(XrefBaseOp):
+    def __init__(self, ax_ptr, addr_space):
+        super().__init__(ax_ptr, addr_space)
+
+
+class Xref16Op(XrefBaseOp):
+    def __init__(self, ax_ptr, addr_space):
+        super().__init__(ax_ptr, addr_space)
+
+
+class Xref32Op(XrefBaseOp):
+    def __init__(self, ax_ptr, addr_space):
+        super().__init__(ax_ptr, addr_space)
+
+
+class Xref64Op(XrefBaseOp):
+    def __init__(self, ax_ptr, addr_space):
+        super().__init__(ax_ptr, addr_space)
+
+
 class RegOp(BaseOp):
 
     def __init__(self, ax_ptr, reg):
@@ -257,6 +291,10 @@ class AxDisas:
             0x25: self._parse_const64,
             0x26: self._parse_reg,
             0x27: self._parse_end,
+            0x80: self._parse_xref8,
+            0x81: self._parse_xref16,
+            0x82: self._parse_xref32,
+            0x83: self._parse_xref64,
         }
 
     def _get(self, n=1):
@@ -365,6 +403,18 @@ class AxDisas:
 
     def _parse_end(self, ax_ptr):
         return EndOp(ax_ptr)
+
+    def _parse_xref8(self, ax_ptr):
+        return Xref8Op(ax_ptr, self._get())
+
+    def _parse_xref16(self, ax_ptr):
+        return Xref16Op(ax_ptr, self._get())
+
+    def _parse_xref32(self, ax_ptr):
+        return Xref32Op(ax_ptr, self._get())
+
+    def _parse_xref64(self, ax_ptr):
+        return Xref64Op(ax_ptr, self._get())
 
     def parse(self, ax_str, lvalue=False):
         ops = []
