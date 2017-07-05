@@ -41,6 +41,14 @@ class MulOp(BaseOp):
     pass
 
 
+class RemSignedOp(BaseOp):
+    pass
+
+
+class RemUnsignedOp(BaseOp):
+    pass
+
+
 class LeftShiftOp(BaseOp):
     pass
 
@@ -221,6 +229,8 @@ class AxDisas:
             0x02: self._parse_add,
             0x03: self._parse_sub,
             0x04: self._parse_mul,
+            0x07: self._parse_rem_signed,
+            0x08: self._parse_rem_unsigned,
             0x09: self._parse_left_shift,
             0x0a: self._parse_right_signed_shift,
             0x0b: self._parse_right_unsigned_shift,
@@ -270,6 +280,12 @@ class AxDisas:
 
     def _parse_mul(self, ax_ptr):
         return MulOp(ax_ptr)
+
+    def _parse_rem_signed(self, ax_ptr):
+        return RemSignedOp(ax_ptr)
+
+    def _parse_rem_unsigned(self, ax_ptr):
+        return RemUnsignedOp(ax_ptr)
 
     def _parse_left_shift(self, ax_ptr):
         return LeftShiftOp(ax_ptr)
