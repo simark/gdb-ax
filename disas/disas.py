@@ -222,6 +222,26 @@ class RegOp(BaseOp):
                                          hex(self._reg))
 
 
+class PrintfOp(BaseOp):
+
+    def __init__(self, ax_ptr, numargs, string):
+        super().__init__(ax_ptr)
+        self._numargs = numargs
+        self._string = string
+
+    @property
+    def numargs(self):
+        return self._numargs
+
+    @property
+    def string(self):
+        return self._string
+
+    def __repr__(self):
+        return 'PrintfOp(numargs={}, string="{}")'.format(self.numargs,
+                                                          self.string)
+
+
 class AxDisas:
 
     def __init__(self):
@@ -257,6 +277,7 @@ class AxDisas:
             0x25: self._parse_const64,
             0x26: self._parse_reg,
             0x27: self._parse_end,
+            0x34: self._parse_printf,
         }
 
     def _get(self, n=1):
@@ -365,6 +386,17 @@ class AxDisas:
 
     def _parse_end(self, ax_ptr):
         return EndOp(ax_ptr)
+
+    def _parse_printf(self, ax_ptr):
+        numargs = self._get(1)
+
+        strlen = self._get(2)
+        string = ""
+
+        for i in range(strlen):
+            string += chr(self._get(1))
+
+        return PrintfOp(ax_ptr, numargs, string)
 
     def parse(self, ax_str, lvalue=False):
         ops = []
